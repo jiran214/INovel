@@ -38,7 +38,10 @@ class Engine:
         # 从retriever查询用户交互相关剧情，作为下次play_context
         play_context = self.play_retriever.search_context(user_interaction.prompt)
         # 更新Play的user_interaction
-        self.play.update_play(play_context=play_context, user_interaction=user_interaction.prompt)
+        self.play.update_play(
+            play_context=play_context,
+            user_interaction=user_interaction.prompt
+        )
         # 用户交互处理后保存到retriever
         self.play_retriever.add_context(user_interaction.interaction_in.story)
 
@@ -53,7 +56,11 @@ class ConsoleUI:
         self.engine = engine
 
     def dialog_display(self, interaction: Dialog):
-        _input = {'character_name': interaction.character_name}
+        _input = {
+            'character_name': interaction.character_name,
+            'story': interaction.story,
+            'scene': interaction.scene,
+        }
         memory = CharactorChatMemory(interaction.character_name)
         while 1:
             # 渲染对话

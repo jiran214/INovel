@@ -1,5 +1,8 @@
+from dotenv import load_dotenv
 import pathlib
 
+
+load_dotenv(verbose=True)
 ROOT = pathlib.Path(__file__).parent
 DATA_DIR = ROOT / 'data'
 

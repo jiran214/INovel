@@ -15,6 +15,10 @@ from src.utils.utils import FileHistory
 # chat_retriever = None
 
 
+# 剧情回顾
+# class PlayMemoryHistory
+
+
 # 保存剧情，任何内容都能召回
 class PlayMemoryRetriever:
     def __init__(self, collection="novel_play"):

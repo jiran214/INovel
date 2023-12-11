@@ -11,7 +11,7 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from src import prompts
 from src.modules.brain import parsers
 from src.modules.brain.llm import chat_model
-from src.modules.memory import CharactorChatMemory
+from src.modules.memory import CharactorChatHistory
 
 
 class ChainSettings:
@@ -44,7 +44,7 @@ class ChainSettings:
         # 角色对话chain todo 增加剧情retriever召回
         self.charactor_chat_chain = (
             RunnablePassthrough.assign(
-                history=itemgetter('charactor_name') | RunnableLambda(CharactorChatMemory.load_charactor_memory)
+                history=itemgetter('charactor_name') | RunnableLambda(CharactorChatHistory.load_charactor_memory)
             )
             | prompts.INovelPrompt.charactor_chat_prompt
             | chat_model
