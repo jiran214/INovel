@@ -22,20 +22,26 @@ class PydanticParser(PydanticOutputParser):
         return PYDANTIC_FORMAT_INSTRUCTIONS.format(schema=schema_str)
 
 
-class AIInteraction(BaseModel):
+class Event(BaseModel):
     story: str = Field(description='之后的剧情发展')
+
+
+class Dialog(Event):
     scene: str = Field(description='当前剧情的场景')
-    event: enums.Event
+    relate_characters: List[str] = Field(description='关联角色名称')
 
 
-class Dialog(AIInteraction):
-    character_name: str = Field(description='选择的人物名称')
-    event: enums.Event = enums.Event.dialog
+class Result(Event):
+    pass
 
 
-class Action(AIInteraction):
+class Action(Event):
+    scene: str = Field(description='当前剧情的场景')
+    characters: List[str] = Field(description='关联角色名称')
     options: List[str] = Field(description='为玩家生成，决定故事的发展')
-    event: enums.Event = enums.Event.action
+
+
+# class Result() = str
 
 
 class UserInteraction(BaseModel):

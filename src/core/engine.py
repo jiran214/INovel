@@ -1,52 +1,49 @@
 from typing import Optional, Union
 
-from src.modules.brain.chains import ChainSettings
-from src.modules.brain.parsers import (
+from src.core.chains import ChainFlow
+from src.modules.parsers import (
     UserInteraction,
     Dialog,
-    Action, AIInteraction
+    Action, Result, AIInteraction
 )
-from src.modules.memory import CharactorChatMemory, PlayMemoryRetriever
+from src.modules.memory import CharactorMemoryHistory, NovelMemoryRetriever
 from src.modules.play import NovelSettings
 from src.utils.enums import Event
 
 
 class Engine:
-    def __init__(self, play: NovelSettings,  brain: ChainSettings):
+    def __init__(self, play: NovelSettings, brain: ChainFlow):
         self.play = play
         self.brain = brain
-        self.play_retriever: PlayMemoryRetriever = PlayMemoryRetriever(play.title)
+        self.play_retriever: NovelMemoryRetriever = NovelMemoryRetriever(play.title)
+        self.generated_end_step = 1
 
     def _next_step(self):
-        if self.play.current_step < self.play.total_steps:
-            if self.play.current_step % self.brain.dialog_trigger_steps == 0:
-                # 触发对话
-                user_interaction = self.brain.dialog_chain.invoke(self.play.get_inputs())
-            else:
-                # 触发动作选项
-                user_interaction = self.brain.action_chain.invoke(self.play.get_inputs())
+        # 互动结局
+        if self.generated_end_step < self.play.current_step:
+            result = self.brain.novel_end_chain.invoke(self.play.get_inputs())
+            self.play.result = result
+            self.play_retriever.add_context(result)
+            return
+        # 互动事件
+        if self.play.current_step <= self.play.total_steps:
+            user_interaction = self.brain.event_branch_chain.invoke(self.play.get_inputs())
+            self.play.current_step += 1
             # 保存剧情到retriever
-            self.play.current_step += 1
+            self.play_retriever.add_context(user_interaction.story)
             return user_interaction
-        elif self.play.current_step < self.play.total_steps:
-            self.play.current_step += 1
-            return self.brain.novel_end_chain.invoke(self.play.get_inputs())
         else:
             StopIteration('大结局')
 
-    def _save_context(self, user_interaction: UserInteraction):
-        # 从retriever查询用户交互相关剧情，作为下次play_context
-        play_context = self.play_retriever.search_context(user_interaction.prompt)
-        # 更新Play的user_interaction
-        self.play.update_play(
-            play_context=play_context,
-            user_interaction=user_interaction.prompt
-        )
-        # 用户交互处理后保存到retriever
-        self.play_retriever.add_context(user_interaction.interaction_in.story)
-
-    def next_step(self, user_interaction: Optional[UserInteraction] = None) -> Union[Dialog, Action]:
-        if user_interaction: self._save_context(user_interaction)
+    def next_step(self, user_interaction: Optional[UserInteraction] = None) -> Union[Result, Dialog, Action]:
+        if user_interaction:
+            # 从retriever查询用户交互相关剧情，作为下次play_context
+            play_context = self.play_retriever.search_context(user_interaction.prompt)
+            # 更新Play的user_interaction
+            self.play.update_play(
+                play_context=play_context,
+                user_interaction=user_interaction.prompt
+            )
         return self._next_step()
 
 
@@ -61,12 +58,12 @@ class ConsoleUI:
             'story': interaction.story,
             'scene': interaction.scene,
         }
-        memory = CharactorChatMemory(interaction.character_name)
+        memory = CharactorMemoryHistory(interaction.character_name)
         while 1:
             # 渲染对话
-            _input['input'] = input('对话:')
+            _input['input'] = input('[你]:')
             str_outputs = self.engine.brain.charactor_chat_chain.invoke(_input)
-            print(str_outputs)
+            print(f'[{memory.chat_memory.ai_prefix}]:', str_outputs)
             # 对话中止条件
             if not str_outputs:
                 break
@@ -85,6 +82,9 @@ class ConsoleUI:
             interaction_out=interaction.options[int(user_input)-1]
         )
 
+    def result_display(self, result: str):
+        print('结局:')
+
     def loop(self):
         user_interaction = None
         while 1:
@@ -92,16 +92,18 @@ class ConsoleUI:
                 ai_interaction = self.engine.next_step(user_interaction)
             except StopIteration:
                 break
-            if ai_interaction.event is Event.dialog:
+            if isinstance(ai_interaction, Dialog):
                 user_interaction = self.dialog_display(ai_interaction)
-            elif ai_interaction.event is Event.action:
+            elif isinstance(ai_interaction, Action):
                 user_interaction = self.action_display(ai_interaction)
+            elif isinstance(ai_interaction, Result):
+                self.result_display(ai_interaction)
 
 
 if __name__ == '__main__':
     engine = Engine(
         play=NovelSettings(),
-        brain=ChainSettings(dialog_trigger_steps=3)
+        brain=ChainFlow(dialog_trigger_steps=3)
     )
     ui = ConsoleUI(engine)
     ui.loop()

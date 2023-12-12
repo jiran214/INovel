@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from src.utils.utils import JsonImporter
@@ -18,9 +18,12 @@ class NovelSettings(BaseModel):
     option_num: int = Field(default=3, description="交互式剧情选项数量")
     language: str = Field(default='中文')
 
-    current_step: int = Field(default=1, description="当前剧情")
-    play_context: str = Field(default='暂无', description="剧情回顾")
-    user_interaction: str = Field(default='暂无', description="用户交互")
+    """动态"""
+    current_step: int = Field(default=1, description="当前进度")
+    relate_characters: List[str] = Field(default=[], description="涉及人物")
+    scene: Optional[str] = Field(default=None, description="场景")
+    play_context_window: str = Field(default='暂无', description="剧情")
+    play_context_memory: str = Field(default='暂无', description="关联剧情")
 
     def get_inputs(self):
         return self.model_dump()

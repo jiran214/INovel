@@ -16,6 +16,9 @@ SETTINGS_PROMPT = """# 故事:{title}
 
 ## 玩家上一轮行为
 {user_interaction}
+
+## 玩家上一轮结果
+{result}
 """
 
 END_PROMPT = """# 指令

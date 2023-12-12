@@ -5,7 +5,7 @@ from langchain_core.prompts import (
     SystemMessagePromptTemplate, HumanMessagePromptTemplate
 )
 
-from src.modules.brain import parsers
+from src.modules import parsers
 from src.prompts.interaction import DIALOG_PROMPT, ACTION_PROMPT, CHAT_PROMPT
 from src.prompts.novel_life import SETTINGS_PROMPT, END_PROMPT
 from src.prompts.system import SYSTEM_PROMPT
@@ -42,7 +42,7 @@ class INovelPrompt:
     dialog_driven_prompt = get_pipeline_prompt(dialog_prompt)
     action_driven_prompt = get_pipeline_prompt(action_prompt)
     novel_end_prompt = get_pipeline_prompt(novel_end_prompt)
-    charactor_chat_prompt = ChatPromptTemplate.from_template(CHAT_PROMPT)
+    charactor_chat_prompt = ChatPromptTemplate.from_template(CHAT_PROMPT)  # 添加主角在人物介绍
 
 
 __all__ = [

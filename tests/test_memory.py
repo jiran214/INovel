@@ -1,6 +1,6 @@
 import os
 
-from src.modules.memory import CharactorChatMemory, PlayMemoryRetriever
+from src.modules.memory import CharactorChatMemory, NovelMemoryRetriever
 
 
 class TestPlayMemoryRetriever:

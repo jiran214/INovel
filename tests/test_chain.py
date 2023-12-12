@@ -1,14 +1,13 @@
 import pathlib
 
 from langchain import chains
-from langchain.globals import set_debug
 
-from src.modules.brain.chains import ChainSettings
-from src.modules.brain.parsers import Dialog, Action
+from src.core.chains import ChainFlow
+from src.modules.parsers import Dialog, Action
 from src.modules.play import NovelSettings
 from src.utils.utils import JsonImporter
 
-chain_settings = ChainSettings(0)
+chain_settings = ChainFlow(0)
 # set_debug(True)
 play = NovelSettings(**JsonImporter(data_dir=pathlib.Path(__file__).parent).load('test_play.json'))
 
