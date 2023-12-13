@@ -10,7 +10,7 @@ test_play = JsonImporter(data_dir=pathlib.Path(__file__).parent).load('test_play
 
 def test_play_export():
     play = NovelSettings(**test_play)
-    play.export()
+    play.export_json()
     file_obj = settings.DATA_DIR / 'plays' / f'{play.title}.json'
     assert file_obj.exists()
 

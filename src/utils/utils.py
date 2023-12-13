@@ -13,25 +13,24 @@ from src import settings
 
 class JsonImporter:
 
-    def __init__(self, data_dir: pathlib.Path = settings.DATA_DIR / 'plays'):
-        self.data_dir = data_dir
+    def __init__(self, namespace: str, filename='play.json'):
+        self.data_dir = settings.DATA_DIR / namespace / filename
+        self.ensure_ascii = False
         self.encoding = 'utf-8'
         if not self.data_dir.exists():
             os.mkdir(self.data_dir)
 
-    def load(self, filename: str):
-        file_path = self.data_dir / filename
-        with open(str(file_path), 'r', encoding=self.encoding) as file:
+    def load(self):
+        with open(str(self.data_dir), 'r', encoding=self.encoding) as file:
             data = json.load(file)
         return data
 
-    def export(self, filename: str, data):
-        file_path = self.data_dir / filename
-        with open(file_path, 'w', encoding=self.encoding) as file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
+    def export(self, data):
+        with open(str(self.data_dir), 'w', encoding=self.encoding) as file:
+            json.dump(data, file, ensure_ascii=self.ensure_ascii, indent=4)
 
-    def delete(self, filename):
-        os.remove(self.data_dir / filename)
+    def delete(self):
+        os.remove(self.data_dir)
 
 
 class FileHistory(FileChatMessageHistory):

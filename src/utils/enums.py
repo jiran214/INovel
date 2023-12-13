@@ -7,13 +7,15 @@ class Event(Enum):
 
 
 class EventName(Enum):
-    dialog = '对话'
-    play = '剧情'
-    action = '行动'
-    result = '结果'
+    DIALOG = '对话'
+    PLAY = '剧情'
+    ACTION = '行动'
+    RESULT = '结果'
 
 
 class EventLife(Enum):
-    starts = 'start'
-    process = 'process'
-    ends = 'end'
+    STARTS = 'start'
+    PROCESS = 'process'
+    ENDS = 'end'
+
+

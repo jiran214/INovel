@@ -30,7 +30,7 @@ class NovelMemoryRetriever:
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=300,
             chunk_overlap=0,
-            separators=["\n\n", "\n", "。", "！", "？", ""],
+            separators=["\n\n", "\n", "。", "！", "？", "，"],
             length_function=len
         )
 
@@ -129,9 +129,9 @@ class TokenBufferMemory(BaseChatMemory):
 
 
 class PlayContext:
-    def __init__(self):
+    def __init__(self, namespace: str):
         # 保存角色对话，通过角色name召回
-        self.file_path = settings.DATA_DIR / 'memory' / "play_history.jsonl"
+        self.file_path = settings.DATA_DIR / namespace / 'memory' / "play_history.jsonl"
         self.retriever = NovelMemoryRetriever()
         self.k = 12
         if not self.file_path.parent.exists():

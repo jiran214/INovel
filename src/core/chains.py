@@ -11,20 +11,7 @@ from src.modules.memory import CharactorMemoryHistory
 
 class ChainFlow:
 
-    def __init__(
-            self
-    ):
-        """
-        event:              user:
-            action_chain -> charactor_chat_chain ->
-        ->                                         novel_end_chain -> loop
-            dialog_chain ->                      ->
-
-        Args:
-            dialog_trigger_steps: 每n step触发一次对话，默认触发action
-        """
-        # self.dialog_trigger_steps = dialog_trigger_steps
-
+    def __init__(self):
         """交互事件生成"""
         # 动作选项chain
         self.action_chain = (
@@ -38,14 +25,6 @@ class ChainFlow:
                 | chat_model
                 | parsers.dialog_parser
         )
-        # self.event_branch_chain = RunnableBranch(
-        #     (
-        #         lambda x: x["current_step"] % self.dialog_trigger_steps == 0,
-        #         action_chain
-        #     ),
-        #     dialog_chain,
-        # )
-
         # 结局生成chain
         self.novel_end_chain = (
             prompts.INovelPrompt.novel_end_prompt

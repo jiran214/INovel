@@ -10,6 +10,7 @@ class Character(BaseModel):
 
 
 class NovelSettings(BaseModel):
+    namespace = Field(description="命名空间")
     title: str = Field(description="故事标题")
     background: str = Field(description="故事背景")
     characters: List[Character] = Field(description="人物角色")
@@ -28,14 +29,18 @@ class NovelSettings(BaseModel):
     def get_inputs(self):
         return self.model_dump()
 
-    def update_play(self, play_context: str, user_interaction: str):
-        self.play_context = play_context
-        self.user_interaction = user_interaction
-
     @classmethod
-    def load_json(cls, title):
-        data_dict = JsonImporter().load(f"{title}.json")
+    def load_json(cls, namespace):
+        data_dict = JsonImporter(namespace).load()
         return cls(**data_dict)
 
-    def export(self):
-        JsonImporter().export(f"{self.title}.json", self.model_dump())
+    def reset(self):
+        self.current_step = 1
+        self.relate_characters = []
+        self.scene = '暂无'
+        self.play_context_window = '暂无'
+        self.play_context_memory = '暂无'
+        self.export_json()
+
+    def export_json(self):
+        JsonImporter(self.namespace).export(self.model_dump())
