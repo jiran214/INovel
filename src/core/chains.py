@@ -13,6 +13,12 @@ class ChainFlow:
 
     def __init__(self):
         """交互事件生成"""
+        # 剧情推进
+        self.play_chain = (
+                prompts.INovelPrompt.action_driven_prompt
+                | chat_model
+                | parsers.action_parser
+        )
         # 动作选项chain
         self.action_chain = (
                 prompts.INovelPrompt.action_driven_prompt

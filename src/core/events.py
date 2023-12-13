@@ -20,15 +20,27 @@ class IAction:
     DialogCallback = DialogCallback
 
 
-class DialogEvent(Event):
-    name = enums.EventName.DIALOG
+class Common(Event):
 
     def start(self, play_inputs: dict):
-        interaction: parsers.Dialog = self.flow.dialog_chain.invoke(play_inputs)
-        self.context_window.sliding_data(self.name.value, interaction.story)
+        interaction: parsers.PlayParagraph = self.flow.play_chain.invoke(play_inputs)
+        self.context_window.sliding_data(enums.EventName.PLAY, interaction.story)
+        # 开始阶段的剧情推进作为本章节的主要剧情
+        self.play.scene = interaction.scene
         return interaction
 
+    def end(self, play_inputs: dict):
+        interaction: parsers.Result = self.flow.novel_end_chain.invoke(play_inputs)
+        self.context_window.sliding_data(enums.EventName.RESULT, interaction.story)
+        return interaction
+
+
+class DialogEvent(Event):
+
     def process(self, play_inputs: dict):
+        interaction: parsers.Dialog = self.flow.dialog_chain.invoke(play_inputs)
+        self.play.relate_characters = interaction.relate_characters
+        self.context_window.sliding_data(enums.EventName.DIALOG, interaction.story)
         _input = {
             'character_name': play_inputs['character_names'][0],
             'story': play_inputs['story'],
@@ -52,16 +64,13 @@ class DialogEvent(Event):
 class ActionEvent(Event):
     name = enums.EventName.ACTION
 
-    def start(self, play_inputs: dict):
+    def process(self, play_inputs):
         interaction: parsers.Action = self.flow.action_chain.invoke(play_inputs)
-        self.context_window.sliding_data(self.name.value, interaction.story)
-        self.share_data[EventLife.STARTS] = interaction
-        return interaction
+        self.context_window.sliding_data(enums.EventName.ACTION, interaction.story)
 
-    def process(self):
         def action_callback(user_option: Union[int, str], is_index=True):
             if is_index:
-                user_action = self.share_data[EventLife.STARTS].options.index(user_option)
+                user_action = interaction.options.index(user_option)
             else:
                 user_action = user_option
             self.context_window.sliding_data(enums.EventName.ACTION, user_action)

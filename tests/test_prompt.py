@@ -5,30 +5,36 @@ from src.modules.play import NovelSettings
 from src.prompts import INovelPrompt, dialog_prompt
 from src.utils.utils import JsonImporter
 
-settings_vars = [
-    'title',
-    'background',
-    'characters',
-    'current_step',
-    'total_steps',
-    'goal',
-    'play_context',
-    'user_interaction'
+common_vars = [
+    'language',
+    'total_chapters',
+    'current_chapter',
+    'play_context_window',
+    'play_context_memory',
+    # 'format_instructions'
 ]
 
-play = NovelSettings(**JsonImporter(data_dir=pathlib.Path(__file__).parent).load('test_play.json'))
+start_vars = [
+    'title',
+    'description',
+    'characters',
+    'goal',
+]
+
+play = NovelSettings(**JsonImporter('test').load())
 
 
-def test_dialog_prompt():
-    input_vars = ['language']
-    assert set(dialog_prompt.input_variables) == set(input_vars)
-    prompt = dialog_prompt.format(language='中文')
-    assert prompt
+def test_novel_start_prompt():
+    input_vars = common_vars + start_vars
+    assert set(INovelPrompt.novel_start_prompt.input_variables) == set(input_vars)
+    print(input_vars)
+    prompt = INovelPrompt.novel_start_prompt.format(**play.get_inputs())
     print('\n', prompt)
+    assert prompt
 
 
 def test_dialog_driven_prompt():
-    input_vars = settings_vars + ['language']
+    input_vars = common_vars + ['relate_characters', 'scene']
     assert set(INovelPrompt.dialog_driven_prompt.input_variables) == set(input_vars)
     prompt = INovelPrompt.dialog_driven_prompt.format(**play.get_inputs())
     print('\n', prompt)
@@ -36,7 +42,7 @@ def test_dialog_driven_prompt():
 
 
 def test_action_driven_prompt():
-    input_vars = settings_vars + ['language', 'option_num']
+    input_vars = common_vars + ['option_num', 'scene', 'relate_characters']
     assert set(INovelPrompt.action_driven_prompt.input_variables) == set(input_vars)
     prompt = INovelPrompt.action_driven_prompt.format(**play.get_inputs())
     print('\n', prompt)
@@ -44,7 +50,7 @@ def test_action_driven_prompt():
 
 
 def test_novel_end_prompt():
-    input_vars = settings_vars + []
+    input_vars = common_vars + ['scene', 'relate_characters']
     assert set(INovelPrompt.novel_end_prompt.input_variables) == set(input_vars)
     prompt = INovelPrompt.novel_end_prompt.format(**play.get_inputs())
     print('\n', prompt)
@@ -52,7 +58,7 @@ def test_novel_end_prompt():
 
 
 def test_charactor_chat_prompt():
-    input_vars = ['story', 'scene', 'history', 'input', 'charactor_name']
+    input_vars = common_vars + ['charactor', 'scene', 'input', 'history', 'relate_characters']
     assert set(INovelPrompt.charactor_chat_prompt.input_variables) == set(input_vars)
     prompt = INovelPrompt.charactor_chat_prompt.format(**{key: key for key in input_vars})
     print('\n', prompt)

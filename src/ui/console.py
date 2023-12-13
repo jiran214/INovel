@@ -39,7 +39,7 @@ class ConsoleUI:
     def loop(self):
         while 1:
             try:
-                i_action: InteractionLike = self.engine.next_step()
+                i_action: InteractionLike = self.engine.next_chapter()
             except StopIteration:
                 print('结束！')
                 break

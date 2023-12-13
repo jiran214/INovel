@@ -1,25 +1,29 @@
 import os
 from typing import Optional, Any, List, Dict
 
-import overrides
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.memory.chat_memory import BaseChatMemory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores.chroma import Chroma
 from langchain_core.language_models import BaseLanguageModel
-from langchain_core.messages import get_buffer_string, ChatMessage
+from langchain_core.messages import get_buffer_string, BaseMessage, ChatMessage
+from overrides import override
+from typing_extensions import Literal
 
 from src import settings
 from src.modules import llm
 from src.utils.utils import FileHistory, FileHistoryProxy, get_event_buffer_string
 
 
-# 角色name和内容召回
-# chat_retriever = None
+class ContextMessage(BaseMessage):
+    event: str
+    """The speaker / role of the Message."""
+    type: Literal["event"] = "event"
 
-
-# 剧情回顾
-# class PlayMemoryHistory
+    @property
+    def metadata(self):
+        self.additional_kwargs.update(event=self.event)
+        return self.additional_kwargs
 
 
 # 保存剧情，任何内容都能召回
@@ -34,12 +38,13 @@ class NovelMemoryRetriever:
             length_function=len
         )
 
-    def add_context(self, text: str, meta_data: Optional[dict]=None, need_spilt=True):
+    def add_context(self, context: ContextMessage, need_spilt=True):
         if need_spilt:
-            texts = self.text_splitter.split_text(text)
+            texts = self.text_splitter.split_text(context.content)
         else:
-            texts = [text]
-        metadatas = meta_data and [meta_data] * len(texts)
+            texts = [context.content]
+        metadata = context.metadata
+        metadatas = [metadata] * len(texts)
         self.store.add_texts(texts, metadatas)
 
     def search_context(self, query, k: int = 8):
@@ -50,32 +55,35 @@ class NovelMemoryRetriever:
 class CharactorMemoryHistory:
     charactor_memory_map = {}
 
-    def __init__(self, charactor_name: str):
+    def __init__(self, namespace: str, charactor_name: str):
         # 保存角色对话，通过角色name召回
-        self.file_path = settings.DATA_DIR / 'chat_history' / f"{charactor_name}.json"
+        self.file_path = settings.DATA_DIR / namespace / 'chat_history' / f"{charactor_name}.json"
+        self.namespace = namespace
+        self.charactor_name = charactor_name
         self.k = 6
         if not self.file_path.parent.exists():
-            os.mkdir(self.file_path.parent)
-        self.chat_memory: ConversationBufferWindowMemory = self.get_charactor_memory(charactor_name)
+            os.makedirs(self.file_path.parent, exist_ok=True)
+        self.chat_memory: ConversationBufferWindowMemory = self.get_charactor_memory()
 
-    def get_charactor_memory(self, charactor_name):
-        if charactor_name not in self.charactor_memory_map:
-            self.charactor_memory_map[charactor_name] = ConversationBufferWindowMemory(
-                human_prefix='me',
-                ai_prefix=charactor_name,
+    def get_charactor_memory(self):
+        key = (self.namespace, self.charactor_name)
+        if key not in self.charactor_memory_map:
+            self.charactor_memory_map[key] = ConversationBufferWindowMemory(
+                human_prefix='主角',
+                ai_prefix=self.charactor_name,
                 chat_memory=FileHistory(self.file_path),
                 k=self.k,
                 # llm=llm.chat_model,
                 # max_token_limit=2000,
             )
-        return self.charactor_memory_map[charactor_name]
+        return self.charactor_memory_map[key]
 
     def save_context(self, inputs: str, outputs: str):
         return self.chat_memory.save_context({'input': inputs}, {'output': outputs})
 
-    @classmethod
-    def load_charactor_memory(cls, charactor_name: str):
-        return cls(charactor_name).chat_memory.buffer
+    @property
+    def buffer(self):
+        return self.chat_memory.buffer
 
 
 class TokenBufferMemory(BaseChatMemory):
@@ -96,7 +104,7 @@ class TokenBufferMemory(BaseChatMemory):
         return get_event_buffer_string(self.chat_memory.messages)
 
     @property
-    def buffer_as_messages(self) -> List[ChatMessage]:
+    def buffer_as_messages(self) -> List[ContextMessage]:
         """Exposes the buffer as a list of messages in case return_messages is True."""
         return self.chat_memory.messages
 
@@ -112,8 +120,8 @@ class TokenBufferMemory(BaseChatMemory):
         """Return history buffer."""
         return {self.memory_key: self.buffer}
 
-    @overrides.override
-    def save_context(self, messages: List[ChatMessage]) -> List[ChatMessage]:
+    @override
+    def save_context(self, messages: List[ContextMessage]) -> List[ContextMessage]:
         # Prune buffer if it exceeds max token limit
         self.chat_memory.messages.extend(messages)
         buffer = self.chat_memory.messages
@@ -143,13 +151,14 @@ class PlayContext:
             max_token_limit=2000,
         )
 
-    def sliding_data(self, event_name, content, long_memory=True):
-        message = ChatMessage(role=event_name, content=content)
+    def sliding_data(self, event_name, content):
+        message = ContextMessage(event=event_name, content=content)
         pruned_memory = self.memory.save_context([message])
-        # todo 格式化message
-        if long_memory:
-            for message in pruned_memory:
-                self.retriever.add_context(message.content, message.additional_kwargs)
+        for message in pruned_memory:
+            # 聊天记录不存入
+            if isinstance(message, ContextMessage):
+                self.retriever.add_context(message)
+
     @property
     def play_context_window(self):
         return self.memory.buffer_as_str

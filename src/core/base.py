@@ -3,6 +3,8 @@ import typing
 from abc import ABC
 from typing import Dict
 
+from pydantic import BaseModel
+
 from src.core.chains import ChainFlow
 from src.modules import parsers, memory
 from src.modules.play import NovelSettings
@@ -15,7 +17,6 @@ if typing.TYPE_CHECKING:
 
 
 class Event(ABC):
-    name = None
     share_data: Dict[enums.EventLife, InteractionLike] = {}
 
     def __init__(self, play: NovelSettings, flow: ChainFlow, context_window: memory.PlayContext):
@@ -23,24 +24,23 @@ class Event(ABC):
         self.flow = flow
         self.play = play
 
-    @abc.abstractmethod
-    def start(self, *args, **kwargs): ...
-
-    @abc.abstractmethod
-    def process(self, *args, **kwargs): ...
-
-    def end(self, play_inputs: dict):
-        result: parsers.Result = self.flow.novel_end_chain.invoke(play_inputs)
-        self.context_window.sliding_data(enums.EventName.RESULT, result.story)
-        return result
+    def start(self, *args, **kwargs): raise NotImplementedError
+    def process(self, *args, **kwargs): raise NotImplementedError
+    def end(self, *args, **kwargs): raise NotImplementedError
 
     def cycle(self, play_inputs: dict, life: EventLife):
+        # 每次循环开始召回关联剧情
         play_inputs.update(
-            play_context_memory=self.play.play_context_memory,
-            play_context_window=self.play.play_context_window,
+            play_context_memory=self.context_window.play_context_memory,
+            play_context_window=self.context_window.play_context_window,
         )
         life_response = getattr(self, life.value)(play_inputs)
-        if life is EventLife.STARTS:
-            # 每个回合开始，场景和关联角色不变
-            self.play.relate_characters = life_response.relate_characters
-            self.play.scene = life_response.scene
+        return life_response
+
+
+class FlowNode(BaseModel):
+    event: Event
+    life: EventLife
+
+    def run(self, play_inputs: dict) -> InteractionLike:
+        return self.event.cycle(play_inputs, self.life)
