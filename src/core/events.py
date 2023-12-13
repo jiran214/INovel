@@ -1,9 +1,10 @@
 from typing import Union, Callable, Generator
 
+import src.schemas
 from src.core.base import Event
 from src.modules import parsers
 from src.modules.memory import CharactorMemoryHistory
-from src.modules.parsers import Result, Dialog, Action
+from src.schemas import Dialog, Action, Result
 from src.utils import enums
 from src.utils.enums import EventLife
 
@@ -23,14 +24,14 @@ class IAction:
 class Common(Event):
 
     def start(self, play_inputs: dict):
-        interaction: parsers.PlayParagraph = self.flow.play_chain.invoke(play_inputs)
+        interaction: src.schemas.PlayParagraph = self.flow.play_chain.invoke(play_inputs)
         self.context_window.sliding_data(enums.EventName.PLAY, interaction.story)
         # 开始阶段的剧情推进作为本章节的主要剧情
         self.play.scene = interaction.scene
         return interaction
 
     def end(self, play_inputs: dict):
-        interaction: parsers.Result = self.flow.novel_end_chain.invoke(play_inputs)
+        interaction: src.schemas.Result = self.flow.novel_end_chain.invoke(play_inputs)
         self.context_window.sliding_data(enums.EventName.RESULT, interaction.story)
         return interaction
 
@@ -38,7 +39,7 @@ class Common(Event):
 class DialogEvent(Event):
 
     def process(self, play_inputs: dict):
-        interaction: parsers.Dialog = self.flow.dialog_chain.invoke(play_inputs)
+        interaction: src.schemas.Dialog = self.flow.dialog_chain.invoke(play_inputs)
         self.play.relate_characters = interaction.relate_characters
         self.context_window.sliding_data(enums.EventName.DIALOG, interaction.story)
         _input = {
@@ -65,7 +66,7 @@ class ActionEvent(Event):
     name = enums.EventName.ACTION
 
     def process(self, play_inputs):
-        interaction: parsers.Action = self.flow.action_chain.invoke(play_inputs)
+        interaction: src.schemas.Action = self.flow.action_chain.invoke(play_inputs)
         self.context_window.sliding_data(enums.EventName.ACTION, interaction.story)
 
         def action_callback(user_option: Union[int, str], is_index=True):

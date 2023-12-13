@@ -1,42 +1,50 @@
+import importlib
 import os
-from typing import Optional, Any, List, Dict
+from typing import Any, List, Dict
 
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.memory.chat_memory import BaseChatMemory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores.chroma import Chroma
 from langchain_core.language_models import BaseLanguageModel
-from langchain_core.messages import get_buffer_string, BaseMessage, ChatMessage
 from overrides import override
-from typing_extensions import Literal
 
 from src import settings
 from src.modules import llm
+from src.schemas import ContextMessage
 from src.utils.utils import FileHistory, FileHistoryProxy, get_event_buffer_string
-
-
-class ContextMessage(BaseMessage):
-    event: str
-    """The speaker / role of the Message."""
-    type: Literal["event"] = "event"
-
-    @property
-    def metadata(self):
-        self.additional_kwargs.update(event=self.event)
-        return self.additional_kwargs
 
 
 # 保存剧情，任何内容都能召回
 class NovelMemoryRetriever:
-    def __init__(self, collection="novel_play"):
+    def __init__(self, namespace: str):
         # todo 单例 共享连接
-        self.store = Chroma(collection, llm.embeddings, persist_directory=settings.DATA_DIR)
+        self.path = settings.DATA_DIR / namespace / 'db'
+        self.collection = namespace
+        self.store = self.get_or_create_vst()
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=300,
             chunk_overlap=0,
             separators=["\n\n", "\n", "。", "！", "？", "，"],
             length_function=len
         )
+
+    def get_or_create_vst(self):
+        from langchain.vectorstores.qdrant import Qdrant
+        from qdrant_client import QdrantClient
+        from qdrant_client.http.models import VectorParams, Distance
+
+        client = QdrantClient(path=self.path)
+        collections = client._client.collections.keys()
+        if not (self.collection in collections):
+            print(f"新 collection {self.collection}")
+            client.create_collection(
+                **{'collection_name': self.collection,
+                   'vectors_config': VectorParams(
+                       size=1536, distance=Distance.COSINE, hnsw_config=None, quantization_config=None, on_disk=True
+                   )
+               }
+            )
+        return Qdrant(client, self.collection, llm.embeddings)
 
     def add_context(self, context: ContextMessage, need_spilt=True):
         if need_spilt:
@@ -47,9 +55,12 @@ class NovelMemoryRetriever:
         metadatas = [metadata] * len(texts)
         self.store.add_texts(texts, metadatas)
 
-    def search_context(self, query, k: int = 8):
+    def search_context(self, query, k: int = 8, as_str=True):
         docs = self.store.similarity_search(query, k=k)
-        return '\n'.join([doc.page_content for doc in docs])
+        if as_str:
+            return '\n'.join([doc.page_content for doc in docs])
+        else:
+            return docs
 
 
 class CharactorMemoryHistory:
@@ -57,7 +68,7 @@ class CharactorMemoryHistory:
 
     def __init__(self, namespace: str, charactor_name: str):
         # 保存角色对话，通过角色name召回
-        self.file_path = settings.DATA_DIR / namespace / 'chat_history' / f"{charactor_name}.json"
+        self.file_path = settings.DATA_DIR / namespace / 'chat_history' / f"{charactor_name}.jsonl"
         self.namespace = namespace
         self.charactor_name = charactor_name
         self.k = 6
@@ -120,7 +131,7 @@ class TokenBufferMemory(BaseChatMemory):
         """Return history buffer."""
         return {self.memory_key: self.buffer}
 
-    @override
+    @override(check_signature=False)
     def save_context(self, messages: List[ContextMessage]) -> List[ContextMessage]:
         # Prune buffer if it exceeds max token limit
         self.chat_memory.messages.extend(messages)

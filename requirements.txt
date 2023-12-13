@@ -1,4 +1,5 @@
 langchain
+qdrant-client
+tiktoken
 openai
-chromadb
 pytest

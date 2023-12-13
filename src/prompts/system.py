@@ -1,7 +1,6 @@
 SYSTEM_PROMPT = """你是一个交互式小说生成器"""
 
-COMMON_PROMPT = """
-## 设定
+COMMON_PROMPT = """## 设定
 - 使用语言: {language}
 - 当前进度: {current_chapter}/{total_chapters}
 
@@ -14,8 +13,7 @@ COMMON_PROMPT = """
 {format_instructions}
 """
 
-FINAL_PROMPT = """
-{novel_settings}
+FINAL_PROMPT = """{novel_settings}
 {common_settings}
 {instruction}
 """

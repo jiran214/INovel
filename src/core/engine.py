@@ -3,11 +3,7 @@ from src.core import events
 from src.core.base import FlowNode
 from src.core.chains import ChainFlow
 from src.core.events import InteractionLike, IAction
-from src.modules.parsers import (
-    Dialog,
-    Action,
-    Result,
-)
+from src.schemas import Dialog, Action, Result
 from src.modules.memory import CharactorMemoryHistory, NovelMemoryRetriever, PlayContext
 from src.modules.play import NovelSettings
 from src.utils import enums

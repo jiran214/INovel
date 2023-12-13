@@ -10,9 +10,7 @@ from langchain_core.messages import messages_to_dict, BaseMessage, ChatMessage, 
 from pydantic.v1 import Field
 
 from src import settings
-
-if typing.TYPE_CHECKING:
-    from src.modules.memory import ContextMessage
+from src.schemas import ContextMessage
 
 
 class JsonImporter:
@@ -41,9 +39,9 @@ class FileHistory(FileChatMessageHistory):
 
     def add_message(self, message: BaseMessage) -> None:
         """Append the message to the record in the local file"""
-        messages = contexts_to_dict(self.messages)
-        messages.append(contexts_to_dict([message])[0])
-        self.file_path.write_text(json.dumps(messages, ensure_ascii=False, indent=4))
+        messages = messages_to_dict(self.messages)
+        messages.append(messages_to_dict([message])[0])
+        self.file_path.write_text(json.dumps(messages, ensure_ascii=False, indent=2))
 
 
 class FileHistoryProxy(FileHistory):
@@ -78,11 +76,11 @@ def get_event_buffer_string(
 
 
 def context_to_dict(message: BaseMessage) -> dict:
-    return message.dict(exclude={'type'})
+    return message.dict()
 
 
 def contexts_to_dict(messages: List[BaseMessage]) -> List[dict]:
-    return [message.dict(exclude={'type'}) for message in messages]
+    return [message.dict() for message in messages]
 
 
 def get_list(obj: Any):

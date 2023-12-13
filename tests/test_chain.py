@@ -3,7 +3,7 @@ import pathlib
 from langchain import chains
 
 from src.core.chains import ChainFlow
-from src.modules.parsers import Dialog, Action
+from src.schemas import Dialog, Action
 from src.modules.play import NovelSettings
 from src.utils.utils import JsonImporter
 

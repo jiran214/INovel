@@ -160,5 +160,5 @@ cython_debug/
 .idea/
 
 *.xml
-*.iml
-#.idea
+**.idea/
+src/data/
