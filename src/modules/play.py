@@ -1,6 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from src import __version__
 from src.utils.utils import JsonImporter
 
 
@@ -10,6 +11,7 @@ class Character(BaseModel):
 
 
 class NovelSettings(BaseModel):
+    version: str = Field(default=__version__, description='版本')
     namespace: str = Field(description="命名空间")
     title: str = Field(description="故事标题")
     description: str = Field(description="故事摘要")
@@ -27,6 +29,8 @@ class NovelSettings(BaseModel):
     play_context_memory: str = Field(default='暂无', description="关联剧情")
 
     def get_inputs(self, exclude: Optional[set] = None):
+        exclude = exclude or set()
+        exclude |= {'version', 'namespace'}
         return self.model_dump(exclude=exclude)
 
     @classmethod
