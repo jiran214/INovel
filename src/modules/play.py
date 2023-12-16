@@ -33,11 +33,6 @@ class NovelSettings(BaseModel):
         exclude |= {'version', 'namespace'}
         return self.model_dump(exclude=exclude)
 
-    @classmethod
-    def load_json(cls, namespace):
-        data_dict = JsonImporter(namespace).load()
-        return cls(**data_dict)
-
     def reset(self):
         self.current_chapter = 1
         self.relate_characters = []
@@ -45,6 +40,11 @@ class NovelSettings(BaseModel):
         self.play_context_window = '暂无'
         self.play_context_memory = '暂无'
         self.export_json()
+
+    @classmethod
+    def load_json(cls, namespace):
+        data_dict = JsonImporter(namespace).load()
+        return cls(**data_dict)
 
     def export_json(self):
         JsonImporter(self.namespace).export(self.model_dump())

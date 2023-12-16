@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from src.core.engine import Engine
-from src.core.events import IAction, InteractionLike
+from src.core.events import IAction
+from src.schemas import InteractionLike
 
 
 def dialog_display(interaction: IAction.Dialog):
@@ -10,8 +11,10 @@ def dialog_display(interaction: IAction.Dialog):
 
 def action_display(interaction: IAction.Action):
     # 渲染动作
+    #
     print(f"选项:\n" + '\n'.join([f"{index + 1}. option" for index, option in enumerate(interaction.options)]))
     user_input = input('你的选择:')
+    interaction.generator_func(user_input)
 
 
 def result_display(interaction: IAction.Result):
@@ -49,7 +52,3 @@ class ConsoleUI:
                 action_display(i_action)
             elif isinstance(i_action, IAction.Result):
                 result_display(i_action)
-            elif isinstance(i_action, IAction.ActionCallback):
-                dialog_interact(i_action)
-            elif isinstance(i_action, IAction.DialogCallback):
-                action_interact(i_action)

@@ -7,9 +7,8 @@ from src.schemas import Dialog, Action
 from src.modules.play import NovelSettings
 from src.utils.utils import JsonImporter
 
-chain_settings = ChainFlow(0)
-# set_debug(True)
-play = NovelSettings(**JsonImporter(data_dir=pathlib.Path(__file__).parent).load('test_play.json'))
+chain_settings = ChainFlow()
+play = NovelSettings(**JsonImporter('test').load())
 
 
 def test_action_chain():
@@ -41,4 +40,3 @@ def test_charactor_chat_chain():
     res = chain_settings.charactor_chat_chain.invoke(_input)
     print('\n', res)
     assert res
-    chains.ConversationChain

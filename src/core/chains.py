@@ -15,9 +15,9 @@ class ChainFlow:
         """交互事件生成"""
         # 剧情推进
         self.play_chain = (
-                prompts.INovelPrompt.action_driven_prompt
+                prompts.INovelPrompt.novel_start_prompt
                 | chat_model
-                | parsers.action_parser
+                | parsers.play_parser
         )
         # 动作选项chain
         self.action_chain = (
@@ -39,10 +39,7 @@ class ChainFlow:
         )
         # 角色对话chain todo 增加剧情retriever召回
         self.charactor_chat_chain = (
-            RunnablePassthrough.assign(
-                history=itemgetter('charactor_name') | RunnableLambda(CharactorMemoryHistory.load_charactor_memory)
-            )
-            | prompts.INovelPrompt.charactor_chat_prompt
+            prompts.INovelPrompt.charactor_chat_prompt
             | chat_model
             | StrOutputParser()
         )

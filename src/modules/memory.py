@@ -1,16 +1,18 @@
 import importlib
 import os
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Union
 
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.memory.chat_memory import BaseChatMemory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 from langchain_core.language_models import BaseLanguageModel
 from overrides import override
 
 from src import settings
 from src.modules import llm
 from src.schemas import ContextMessage
+from src.utils import enums
 from src.utils.utils import FileHistory, FileHistoryProxy, get_event_buffer_string
 
 
@@ -36,7 +38,6 @@ class NovelMemoryRetriever:
         client = QdrantClient(path=self.path)
         collections = client._client.collections.keys()
         if not (self.collection in collections):
-            print(f"新 collection {self.collection}")
             client.create_collection(
                 **{'collection_name': self.collection,
                    'vectors_config': VectorParams(
@@ -55,14 +56,16 @@ class NovelMemoryRetriever:
         metadatas = [metadata] * len(texts)
         self.store.add_texts(texts, metadatas)
 
-    def search_context(self, query, k: int = 8, as_str=True):
+    def search_context(self, query, k: int = 8, as_str=True) -> Union[str, List[ContextMessage]]:
         docs = self.store.similarity_search(query, k=k)
+        contexts = ContextMessage.from_docs(docs)
         if as_str:
-            return '\n'.join([doc.page_content for doc in docs])
+            return '\n'.join([context.format_line() for context in contexts])
         else:
-            return docs
+            return contexts
 
 
+# 保存角色对话
 class CharactorMemoryHistory:
     charactor_memory_map = {}
 
@@ -93,7 +96,7 @@ class CharactorMemoryHistory:
         return self.chat_memory.save_context({'input': inputs}, {'output': outputs})
 
     @property
-    def buffer(self):
+    def history(self):
         return self.chat_memory.buffer
 
 
@@ -112,6 +115,8 @@ class TokenBufferMemory(BaseChatMemory):
     @property
     def buffer_as_str(self) -> str:
         """Exposes the buffer as a string in case return_messages is False."""
+        if not self.chat_memory.messages:
+            return "暂无"
         return get_event_buffer_string(self.chat_memory.messages)
 
     @property
@@ -136,38 +141,37 @@ class TokenBufferMemory(BaseChatMemory):
         # Prune buffer if it exceeds max token limit
         self.chat_memory.messages.extend(messages)
         buffer = self.chat_memory.messages
-        curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
+        curr_buffer_length = self.llm.get_num_tokens(get_event_buffer_string(buffer))
         pruned_memory = []
         if curr_buffer_length > self.max_token_limit:
             while curr_buffer_length > self.max_token_limit:
                 pruned_memory.append(buffer.pop(0))
-                curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
+                curr_buffer_length = self.llm.get_num_tokens(get_event_buffer_string(buffer))
         if pruned_memory:
             self.chat_memory.add_messages(pruned_memory)
         return pruned_memory
 
 
+# 保存剧情历史
 class PlayContext:
-    def __init__(self, namespace: str):
-        # 保存角色对话，通过角色name召回
-        self.file_path = settings.DATA_DIR / namespace / 'memory' / "play_history.jsonl"
-        self.retriever = NovelMemoryRetriever()
-        self.k = 12
+    def __init__(self, namespace: str, max_token_limit: int):
+        self.file_path = settings.DATA_DIR / namespace / "play_history.jsonl"
+        self.retriever = NovelMemoryRetriever(namespace)
+        # self.k = k
         if not self.file_path.parent.exists():
             os.mkdir(self.file_path.parent)
         self.memory: TokenBufferMemory = TokenBufferMemory(
             chat_memory=FileHistoryProxy(self.file_path),
-            k=self.k,
             llm=llm.chat_model,
-            max_token_limit=2000,
+            max_token_limit=max_token_limit,
         )
 
-    def sliding_data(self, event_name, content):
-        message = ContextMessage(event=event_name, content=content)
+    def sliding_data(self, event_name: enums.EventName, content):
+        message = ContextMessage(event=event_name.value, content=content)
         pruned_memory = self.memory.save_context([message])
         for message in pruned_memory:
             # 聊天记录不存入
-            if isinstance(message, ContextMessage):
+            if event_name != enums.EventName.DIALOG:
                 self.retriever.add_context(message)
 
     @property

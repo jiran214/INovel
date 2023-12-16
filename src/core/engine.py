@@ -2,8 +2,8 @@ from typing import Optional, Union, List, Generator, Dict, Callable
 from src.core import events
 from src.core.base import FlowNode
 from src.core.chains import ChainFlow
-from src.core.events import InteractionLike, IAction
-from src.schemas import Dialog, Action, Result
+from src.core.events import IAction
+from src.schemas import Dialog, Action, Result, InteractionLike
 from src.modules.memory import CharactorMemoryHistory, NovelMemoryRetriever, PlayContext
 from src.modules.play import NovelSettings
 from src.utils import enums
@@ -16,10 +16,11 @@ class Engine:
             self,
             play_namespace: str,
             event_trigger_dict: Dict[EventName: Union[float, int]],
-            total_paragraph: int = 6
+            max_token_limit: int,
+            total_paragraph: int = 6,
     ):
         self.play = NovelSettings.load_json(play_namespace)
-        self.context = PlayContext(play_namespace)
+        self.context = PlayContext(play_namespace, max_token_limit)
         self.flow = ChainFlow()
 
         self.trigger_save_chapter = 1

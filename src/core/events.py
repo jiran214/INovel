@@ -1,24 +1,17 @@
-from typing import Union, Callable, Generator
+from typing import Union
 
 import src.schemas
 from src.core.base import Event
-from src.modules import parsers
 from src.modules.memory import CharactorMemoryHistory
-from src.schemas import Dialog, Action, Result
+from src.schemas import Dialog, Action, Result, PlayParagraph
 from src.utils import enums
-from src.utils.enums import EventLife
-
-ActionCallback = Callable[[str], str]
-DialogCallback = Callable[[str], Generator[str]]
-InteractionLike = Union[Result, Dialog, Action, ActionCallback, DialogCallback]
 
 
 class IAction:
     Result = Result
     Dialog = Dialog
     Action = Action
-    ActionCallback = ActionCallback
-    DialogCallback = DialogCallback
+    PlayParagraph = PlayParagraph
 
 
 class Common(Event):
@@ -51,6 +44,7 @@ class DialogEvent(Event):
 
         def dialog_interaction(chat_input: str):
             _input['input'] = chat_input
+            _input['history'] = memory.history
             chat_output = self.flow.charactor_chat_chain.invoke(_input)
             if not chat_output:
                 # todo 自动结束对话，摘要对话内容
@@ -59,11 +53,12 @@ class DialogEvent(Event):
             yield chat_output
             # todo 添加角色对话记录
             # memory.save_context()
-        return dialog_interaction
+
+        interaction.generator_func = dialog_interaction
+        return interaction
 
 
 class ActionEvent(Event):
-    name = enums.EventName.ACTION
 
     def process(self, play_inputs):
         interaction: src.schemas.Action = self.flow.action_chain.invoke(play_inputs)
@@ -75,4 +70,5 @@ class ActionEvent(Event):
             else:
                 user_action = user_option
             self.context_window.sliding_data(enums.EventName.ACTION, user_action)
-        return action_callback
+        interaction.generator_func = action_callback
+        return interaction

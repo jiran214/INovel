@@ -13,7 +13,7 @@ from src.utils.enums import EventLife
 
 
 if typing.TYPE_CHECKING:
-    from src.core.events import InteractionLike
+    from src.schemas import InteractionLike
 
 
 class Event(ABC):
