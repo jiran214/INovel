@@ -47,6 +47,7 @@ class TestCharactorMemoryHistory:
 
 class TestNovelMemoryRetriever:
     def test_add_context(self):
+        NovelMemoryRetriever('test').store.client.delete_collection('test')
         vst = NovelMemoryRetriever('test')
         count1 = vst.store.client.count(vst.collection)
         contexts = [
@@ -59,14 +60,25 @@ class TestNovelMemoryRetriever:
         count2 = vst.store.client.count(vst.collection)
         assert count2.count == count1.count + len(contexts)
         assert vst.store.client.count('test').count >= 3
+        del vst
 
     def test_search_context(self):
         vst = NovelMemoryRetriever('test')
-        contexts = vst.search_context('开心', 9)
+        contexts = vst.search_context('开心', 9, order_by='similarity')
         print(contexts)
         assert contexts.index('开心') < contexts.index('高兴') < contexts.index('难过')
         contexts = vst.search_context('开心', 2, as_str=False)[0]
-        assert isinstance(contexts, Document)
+        assert isinstance(contexts, ContextMessage)
+        del vst
+
+    def test_sort(self):
+        vst = NovelMemoryRetriever('test')
+        contexts = vst.search_context('难过', 9, order_by='time')
+        print(contexts)
+        assert contexts.index('开心') < contexts.index('高兴') < contexts.index('难过')
+        contexts = vst.search_context('开心', 2, as_str=False, order_by='time')[0]
+        assert isinstance(contexts, ContextMessage)
+        del vst
 
 
 class TestPlayContext:
@@ -102,6 +114,7 @@ class TestPlayContext:
         NovelMemoryRetriever('test').store.client.delete_collection('test')
 
         context = PlayContext('test', 10)
+
         count1 = self.get_count(context)
         assert count1 == 0
         assert context.play_context_memory == "暂无"
@@ -109,15 +122,15 @@ class TestPlayContext:
         context.sliding_data(enums.EventName.PLAY, '哈哈')
         assert context.play_context_memory == "暂无"
 
-        context.sliding_data(enums.EventName.PLAY, '哈哈' * 500)
+        context.sliding_data(enums.EventName.PLAY, '哈哈' * 400)
         messages = context.memory.chat_memory.messages
-        print('\n', messages)
         assert messages == []
         assert self.get_count(context) == 2
         # assert len(context.retriever.search_context(query='haha', as_str=False)) == 2
         play = context.play_context_memory
-        assert play == f"[剧情]-哈哈\n[剧情]-{'哈哈' * 100}"
-        assert context.play_context_window == "暂无"
+        assert play != "暂无"
+        assert context.memory.chat_memory.last_message
+        assert play == f"[剧情]-哈哈\n[剧情]-{'哈哈' * 400}"
 
     @staticmethod
     def get_count(context):

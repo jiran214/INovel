@@ -1,3 +1,4 @@
+import time
 from typing import List, Callable, Optional, Generator, Union
 
 from langchain_core.messages import BaseMessage
@@ -19,11 +20,11 @@ class ContextMessage(BaseMessage):
 
     @classmethod
     def from_doc(cls, doc):
-        return cls(event=doc.metadata.get('event'), content=doc.page_content)
+        return cls(event=doc.metadata.get('event'), content=doc.page_content, additional_kwargs=doc.metadata)
 
     @property
     def metadata(self):
-        self.additional_kwargs.update(event=self.event)
+        self.additional_kwargs.update(event=self.event, created=time.time())
         return self.additional_kwargs
 
     def format_line(self):

@@ -1,6 +1,6 @@
 import importlib
 import os
-from typing import Any, List, Dict, Union
+from typing import Any, List, Dict, Union, Literal
 
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.memory.chat_memory import BaseChatMemory
@@ -56,9 +56,11 @@ class NovelMemoryRetriever:
         metadatas = [metadata] * len(texts)
         self.store.add_texts(texts, metadatas)
 
-    def search_context(self, query, k: int = 8, as_str=True) -> Union[str, List[ContextMessage]]:
+    def search_context(self, query, k: int = 8, as_str=True, order_by: Literal['time', 'similarity'] = 'time') -> Union[str, List[ContextMessage]]:
         docs = self.store.similarity_search(query, k=k)
         contexts = ContextMessage.from_docs(docs)
+        if order_by == 'time':
+            contexts = sorted(contexts, key=lambda x: x.additional_kwargs['created'])
         if as_str:
             return '\n'.join([context.format_line() for context in contexts])
         else:
@@ -181,9 +183,8 @@ class PlayContext:
     @property
     def play_context_memory(self):
         """用来召回关联剧情"""
-        messages = self.memory.buffer_as_messages
-        if not messages:
+        if not self.memory.chat_memory.last_message:
             return '暂无'
-        standard_query = get_event_buffer_string(messages[-1:])
+        standard_query = get_event_buffer_string([self.memory.chat_memory.last_message])
         context = self.retriever.search_context(standard_query) or "暂无"
         return context

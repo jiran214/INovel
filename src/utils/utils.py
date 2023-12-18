@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 import itertools
 
 import time
@@ -52,6 +52,7 @@ class FileHistoryProxy(FileHistory):
     def __init__(self, file_path: str):
         super().__init__(file_path)
         self._messages: List['ContextMessage'] = []
+        self.last_message: Optional[ContextMessage] = None
 
     @property
     def messages(self) -> List['ContextMessage']:
@@ -61,6 +62,7 @@ class FileHistoryProxy(FileHistory):
         self._messages = []
 
     def add_messages(self, messages: List['ContextMessage']) -> None:
+        self.last_message = messages[-1]
         messages = contexts_to_dict(messages)
         with self.file_path.open(mode='a') as file:
             for message in messages:
