@@ -114,7 +114,7 @@ def get_event_buffer_string(
             message = m.format_line()
         else:
             if first_chat is False:
-                string_messages.append(f"以下是主角和{m.role}的对话:")
+                string_messages.append(f"以下是玩家和{m.role}的对话:")
                 first_chat = True
             message = f"{m.role}: {m.content}"
         string_messages.append(message)

@@ -1,12 +1,14 @@
+import collections
 import time
-from typing import List, Callable, Optional, Generator, Union
+from typing import List, Callable, Optional, Generator, Union, Tuple
 
 from langchain_core.messages import BaseMessage
 from pydantic.v1 import BaseModel, Field
 from typing_extensions import Literal
 
-ActionCallback = Callable[[Union[int, str], bool], None]
-DialogCallback = Callable[[str], Generator[str, None, None]]
+ActionCallback = Callable[[Union[int, str], Optional[bool]], None]
+DialogChat = collections.namedtuple('DialogChat', ['msg', 'stop'])
+DialogCallback = Callable[[str], Callable[[str], DialogChat]]
 
 
 class ContextMessage(BaseMessage):
@@ -32,7 +34,7 @@ class ContextMessage(BaseMessage):
 
 
 class Interaction(BaseModel):
-    story: str = Field(description='之后的剧情发展')
+    story: str = Field(description='小说后续的剧情发展故事')
 
 
 class PlayParagraph(Interaction):
@@ -40,13 +42,12 @@ class PlayParagraph(Interaction):
 
 
 class Dialog(Interaction):
-    relate_characters: List[str] = Field(description='关联角色名称')
+    character: str = Field(description='角色名字:决定玩家和哪个角色对话')
     generator_func: Optional[DialogCallback] = Field(default=None, exclude_in_schema=True)
 
 
 class Action(Interaction):
-    relate_characters: List[str] = Field(description='关联角色名称')
-    options: List[str] = Field(description='为玩家生成，决定故事的发展')
+    options: List[str] = Field(description='为玩家生成行动选项，决定故事的发展')
     generator_func: Optional[ActionCallback] = Field(default=None, exclude_in_schema=True)
 
 

@@ -4,7 +4,7 @@ from src.core.base import FlowNode
 from src.core.chains import ChainFlow
 from src.core.events import IAction
 from src.schemas import Dialog, Action, Result, InteractionLike
-from src.modules.memory import CharactorMemoryHistory, NovelMemoryRetriever, PlayContext
+from src.modules.memory import characterMemoryHistory, NovelMemoryRetriever, PlayContext
 from src.modules.play import NovelSettings
 from src.utils import enums
 from src.utils.enums import EventName, EventLife

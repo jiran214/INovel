@@ -34,7 +34,7 @@ def test_novel_start_prompt():
 
 
 def test_dialog_driven_prompt():
-    input_vars = common_vars + ['relate_characters', 'scene']
+    input_vars = common_vars + ['scene', 'characters']
     assert set(INovelPrompt.dialog_driven_prompt.input_variables) == set(input_vars)
     prompt = INovelPrompt.dialog_driven_prompt.format(**play.get_inputs())
     print('\n', prompt)
@@ -57,9 +57,9 @@ def test_novel_end_prompt():
     assert prompt
 
 
-def test_charactor_chat_prompt():
-    input_vars = common_vars + ['charactor', 'scene', 'input', 'history', 'relate_characters']
-    assert set(INovelPrompt.charactor_chat_prompt.input_variables) == set(input_vars)
-    prompt = INovelPrompt.charactor_chat_prompt.format(**{key: key for key in input_vars})
+def test_character_chat_prompt():
+    input_vars = common_vars + ['character', 'scene', 'input', 'history', 'relate_characters']
+    assert set(INovelPrompt.character_chat_prompt.input_variables) == set(input_vars)
+    prompt = INovelPrompt.character_chat_prompt.format(**{key: key for key in input_vars})
     print('\n', prompt)
     assert prompt

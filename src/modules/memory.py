@@ -68,31 +68,31 @@ class NovelMemoryRetriever:
 
 
 # 保存角色对话
-class CharactorMemoryHistory:
-    charactor_memory_map = {}
+class characterMemoryHistory:
+    character_memory_map = {}
 
-    def __init__(self, namespace: str, charactor_name: str):
+    def __init__(self, namespace: str, character_name: str):
         # 保存角色对话，通过角色name召回
-        self.file_path = settings.DATA_DIR / namespace / 'chat_history' / f"{charactor_name}.jsonl"
+        self.file_path = settings.DATA_DIR / namespace / 'chat_history' / f"{character_name}.jsonl"
         self.namespace = namespace
-        self.charactor_name = charactor_name
-        self.k = 6
+        self.character_name = character_name
+        self.k = 5
         if not self.file_path.parent.exists():
             os.makedirs(self.file_path.parent, exist_ok=True)
-        self.chat_memory: ConversationBufferWindowMemory = self.get_charactor_memory()
+        self.chat_memory: ConversationBufferWindowMemory = self.get_character_memory()
 
-    def get_charactor_memory(self):
-        key = (self.namespace, self.charactor_name)
-        if key not in self.charactor_memory_map:
-            self.charactor_memory_map[key] = ConversationBufferWindowMemory(
-                human_prefix='主角',
-                ai_prefix=self.charactor_name,
+    def get_character_memory(self):
+        key = (self.namespace, self.character_name)
+        if key not in self.character_memory_map:
+            self.character_memory_map[key] = ConversationBufferWindowMemory(
+                human_prefix='玩家',
+                ai_prefix=self.character_name,
                 chat_memory=FileHistory(self.file_path),
                 k=self.k,
                 # llm=llm.chat_model,
                 # max_token_limit=2000,
             )
-        return self.charactor_memory_map[key]
+        return self.character_memory_map[key]
 
     def save_context(self, inputs: str, outputs: str):
         return self.chat_memory.save_context({'input': inputs}, {'output': outputs})

@@ -1,3 +1,4 @@
+from langchain.output_parsers.format_instructions import PYDANTIC_FORMAT_INSTRUCTIONS
 from langchain_core.prompts import (
     PipelinePromptTemplate,
     PromptTemplate,
@@ -35,7 +36,7 @@ def pipeline(novel_settings, interaction, parser: parsers.PydanticParser=""):
             ("common_settings", PromptTemplate.from_template(
                 COMMON_PROMPT,
                 partial_variables={
-                    "format_instructions": parser and PYDANTIC_INSTRUCTIONS.format(schema=parser.schema_instruct)
+                    "format_instructions": parser and PYDANTIC_FORMAT_INSTRUCTIONS.format(schema=parser.schema_instruct)
                 }
             )),
             ("instruction", interaction)
@@ -48,7 +49,7 @@ class INovelPrompt:
     dialog_driven_prompt = pipeline(novel_process_prompt, dialog_prompt, parsers.dialog_parser)
     action_driven_prompt = pipeline(novel_process_prompt, action_prompt, parsers.action_parser)
     novel_end_prompt = pipeline(novel_process_prompt, novel_end_prompt, parsers.result_parser)
-    charactor_chat_prompt = pipeline(novel_process_prompt, chat_prompt)
+    character_chat_prompt = pipeline(novel_process_prompt, chat_prompt)
 
 
 __all__ = [

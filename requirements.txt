@@ -3,3 +3,4 @@ qdrant-client
 tiktoken
 openai
 pytest
+loguru

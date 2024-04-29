@@ -1,4 +1,4 @@
-SYSTEM_PROMPT = """你是一个交互式小说生成器"""
+SYSTEM_PROMPT = """你是一个交互式小说生成器，玩家将作为主角推动故事的发展"""
 
 COMMON_PROMPT = """## 设定
 - 使用语言: {language}

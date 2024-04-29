@@ -9,7 +9,6 @@ class PydanticParser(PydanticOutputParser):
     @property
     def schema_instruct(self) -> str:
         schema = self.pydantic_object.schema()
-
         # Remove extraneous fields.
         reduced_schema = schema
         if "title" in reduced_schema:

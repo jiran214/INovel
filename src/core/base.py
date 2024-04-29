@@ -10,17 +10,14 @@ from src.modules import parsers, memory
 from src.modules.play import NovelSettings
 from src.utils import enums
 from src.utils.enums import EventLife
-
-
-if typing.TYPE_CHECKING:
-    from src.schemas import InteractionLike
+from src.schemas import InteractionLike
 
 
 class Event(ABC):
     share_data: Dict[enums.EventLife, InteractionLike] = {}
 
-    def __init__(self, play: NovelSettings, flow: ChainFlow, context_window: memory.PlayContext):
-        self.context_window = context_window
+    def __init__(self, play: NovelSettings, flow: ChainFlow, context: memory.PlayContext):
+        self.context = context
         self.flow = flow
         self.play = play
 
@@ -30,11 +27,8 @@ class Event(ABC):
 
     def cycle(self, play_inputs: dict, life: EventLife):
         # 每次循环开始召回关联剧情
-        play_inputs.update(
-            play_context_memory=self.context_window.play_context_memory,
-            play_context_window=self.context_window.play_context_window,
-        )
         life_response = getattr(self, life.value)(play_inputs)
+        self.play.update_context(self.context)
         return life_response
 
 
@@ -44,3 +38,6 @@ class FlowNode(BaseModel):
 
     def run(self, play_inputs: dict) -> InteractionLike:
         return self.event.cycle(play_inputs, self.life)
+
+    class Config:
+        arbitrary_types_allowed = True
